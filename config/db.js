@@ -13,7 +13,7 @@ const dbConnection = async () => {
 
     await mongoose.connect(process.env.MONGO_URI);
     await mongoose.connection.db.command({ ping: 1 });
-    console.log('Conectado a MongoDB Atlas: betimeco');
+    console.log('Conectado a MongoDB Atlas:', mongoose.connection.name);
 };
 
 module.exports = dbConnection;
