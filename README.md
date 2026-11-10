@@ -1,104 +1,89 @@
 # Backend de BeTimeCo
 
-Backend Express con conexión a MongoDB Atlas mediante Mongoose. La autenticación y los productos todavía no están implementados. Este punto de partida se preparó con asistencia de Codex; Alex debe comprenderlo y seguir la exigencia de escritura manual indicada por su profesor para su entrega.
-
-La carpeta de trabajo es `G:\Mi unidad\BIT Bootcamp Desarrollo Web Full Stack\betimeco-backend`. El proyecto completo, incluyendo Git, configuración local y paquetes instalados, se trasladó a Google Drive y se comprobó que el servidor responde desde esta ubicación. La carpeta anterior en `C:\Users\Alexa\source\betimeco-backend` se conserva como respaldo y no se actualiza automáticamente. Continúa trabajando en la carpeta de Google Drive.
+API de la colección de relojes de BeTimeCo, con registro, login y gestión de productos. Usa Node.js, Express, Mongoose, JWT, bcrypt y express-validator.
 
 ## Ejecutarlo
 
-Abre esta carpeta en Visual Studio Code. En su terminal PowerShell:
+En una terminal, dentro de esta carpeta:
 
 ```powershell
 npm.cmd install
-Copy-Item .env.example .env
 npm.cmd run dev
 ```
 
-Si `.env` ya existe, conserva ese archivo y omite el comando Copy-Item.
-Abre http://localhost:3000/api/estado. Debes recibir una respuesta JSON con el mensaje de funcionamiento y `mongodb: "conectado"`. Para detener el servidor, pulsa Ctrl+C en esa terminal.
+En este equipo el archivo .env ya está configurado. En otra instalación, copia .env.example a .env y completa MONGO_URI y SECRET_KEY. No reemplaces un .env existente. SECRET_KEY debe tener al menos 32 caracteres aleatorios. FRONTEND_ORIGIN contiene el origen de Angular, por defecto http://localhost:4200.
 
-La conexión privada ya se configuró en `.env`. No reemplaces ese archivo con `.env.example`: el ejemplo sólo contiene datos ficticios. Para otra instalación, configura MONGO_URI con los datos de Atlas.
+El servidor espera a que Atlas responda antes de escuchar en el puerto 3000. GET http://localhost:3000/api/estado muestra la conexión. No publiques .env ni credenciales.
 
-## Conexión a MongoDB paso a paso
+## Organización
 
-1. Atlas aloja el clúster gratuito BeTimeCo; la aplicación utiliza la base lógica `betimeco`.
-2. `.env` guarda PORT y MONGO_URI. La URI indica el servidor de Atlas y contiene el usuario y la contraseña de la base de datos. Esa cuenta es distinta de la cuenta con la que entras al sitio de Atlas.
-3. dotenv carga esos valores en `process.env` al iniciar `index.js`.
-4. `require('./config/db')` importa la función de conexión, siguiendo la estructura del profesor.
-5. En `config/db.js`, `await mongoose.connect(process.env.MONGO_URI)` espera a que termine la conexión. `async` permite usar `await` dentro de esa función.
-6. El comando `ping` comprueba que MongoDB responde. No inserta productos ni usuarios.
-7. Sólo después de conectar, `app.listen` abre el servidor HTTP.
-8. `/api/estado` devuelve 200 si Mongoose indica conexión activa y 503 si perdió la conexión. Esta comprobación no sustituye el manejo de errores de las futuras operaciones CRUD.
+- index.js carga la configuración, conecta MongoDB e inicia el servidor.
+- app.js configura Express, CORS, las rutas y los errores.
+- config/db.js conecta con Atlas.
+- models/User.js y Product.js definen los dos modelos.
+- routes/ asocia direcciones con validadores, middleware y controladores.
+- validators/ comprueba los datos de entrada.
+- middlewares/ valida el formulario y verifica el JWT.
+- controllers/ ejecuta el registro, login y CRUD.
 
-La base `betimeco` puede no aparecer todavía en el explorador de Atlas: MongoDB la materializa al crear una colección o guardar los primeros datos. Conectar y guardar son pasos distintos.
+Se mantiene la estructura de carpetas del profesor. app.js se separó de index.js para probar la API sin arrancar un segundo servidor en el puerto habitual.
 
-Si falla, comprueba en Atlas el usuario de base de datos, su contraseña y la IP permitida. No compartas ni subas `.env`; Git lo ignora. No es necesario instalar MongoDB Community para utilizar Atlas.
+## Endpoints
 
-En este equipo, el DNS predeterminado devolvió ECONNREFUSED al consultar los registros SRV de Atlas. Se configuró `DNS_SERVERS=1.1.1.1,8.8.8.8` en `.env`; `config/db.js` aplica esos servidores sólo al proceso Node mediante `dns.setServers`. No se cambió el DNS de Windows. El ajuste es opcional en otros equipos.
+| Método | Dirección | Uso | Sesión |
+| --- | --- | --- | --- |
+| GET | /api/estado | Estado de conexión | No |
+| POST | /api/auth/registrar | Nombre, email y password | No |
+| POST | /api/auth/login | Email y password; devuelve token y usuario | No |
+| GET | /api/auth/perfil | Datos de la cuenta actual | Sí |
+| GET | /api/product | Catálogo, hasta 200 productos | No |
+| GET | /api/product/:id | Detalle de un producto | No |
+| GET | /api/product/mis-productos | Productos de la cuenta actual | Sí |
+| POST | /api/product | Crear un producto | Sí |
+| PUT | /api/product/:id | Editar todos sus datos | Sí, propietario |
+| DELETE | /api/product/:id | Eliminar un producto | Sí, propietario |
 
-Si Google Drive produce errores de escritura al instalar paquetes, no continúes con una instalación incompleta: instala con el mismo package.json y package-lock.json en una carpeta local y copia los paquetes ya instalados a node_modules en Drive. En esta sesión se utilizó ese procedimiento para Mongoose.
+Para las rutas protegidas usa Authorization: Bearer TOKEN. El token dura una hora. El propietario se obtiene del JWT y se comprueba en la base; no se acepta desde el formulario.
 
-`npm.cmd` es la versión de npm que podemos ejecutar desde PowerShell sin cambiar su política de scripts. `npm run dev` también sirve en terminales que permiten npm directamente.
+El catálogo es público. Cada cuenta administra únicamente los productos que creó: es el alcance de esta versión académica, no un sistema con roles de administración de una tienda en producción.
 
-## Qué acabamos de crear
+Los productos tienen nombre, descripción, precio en COP, stock entero, categoría e imagen. Las categorías son Deportivo, Clásico, Urbano y Elegante. Se permite seleccionar las imágenes de /img o una URL HTTPS.
 
-- Node.js ejecuta JavaScript fuera del navegador.
-- Express permite crear el servidor y sus rutas.
-- Una ruta es una dirección que nuestro servidor reconoce, como `/api/estado`.
-- GET solicita información. El navegador hace esta petición al abrir la dirección.
-- JSON es el formato de los datos de la respuesta: un objeto con propiedades y valores.
-- El puerto 3000 identifica dónde escucha esta aplicación en tu computadora.
-- nodemon reinicia el servidor cuando guardas cambios en el código.
-- `.env` contiene configuración local. `.env.example` muestra qué configuración hace falta sin compartir secretos.
-- `node_modules` contiene los paquetes instalados; `package-lock.json` registra sus versiones para reproducir la instalación.
+## Respuestas y validaciones
 
-## Leer index.js en orden
+- 200: consulta, login, edición o eliminación completada.
+- 201: cuenta o producto creado.
+- 400: datos, identificador o JSON inválidos; errors incluye campo y mensaje, sin contraseñas.
+- 401: credenciales incorrectas o token ausente, inválido o vencido.
+- 404: ruta o producto inexistente; también cuando se intenta modificar un producto ajeno, para no revelar su propietario.
+- 409: correo ya registrado.
+- 413: petición demasiado grande.
+- 429: demasiados intentos de registro o login.
+- 500: fallo interno inesperado, sin mostrar detalles privados.
+- 503: la conexión a MongoDB no está disponible en la consulta de estado.
 
-1. `require('dotenv').config(...)` carga la configuración local.
-2. `require('express')` importa la biblioteca; `express()` crea la aplicación.
-3. `app.use(express.json())` permite interpretar un cuerpo JSON.
-4. `app.get(...)` registra la dirección de comprobación. `peticion` contiene lo que pide el cliente; `respuesta` permite contestar.
-5. `respuesta.status(200).json(...)` contesta con el estado 200 y datos JSON.
-6. El siguiente `app.use` devuelve 404 si ninguna ruta coincidió.
-7. El middleware de errores tiene cuatro parámetros y devuelve 400 para JSON inválido o 500 para un error inesperado.
-8. `iniciarServidor()` espera a `dbConnection()` y después ejecuta `app.listen(...)` para iniciar la escucha local.
+502 corresponde a un fallo de pasarela hacia otro servidor; no es una validación de formularios y no se fuerza mediante un endpoint artificial.
 
-## Organización del profesor
+## Pruebas
 
-```text
-betimeco-backend/
-  index.js
-  config/
-  controllers/
-  middlewares/
-  models/
-  routes/
-  validators/
+```powershell
+npm.cmd test
 ```
 
-`config/db.js` contiene la conexión. Las demás carpetas todavía contienen únicamente `.gitkeep`, un archivo vacío que permite guardarlas en Git. Iremos añadiendo su código cuando lo expliquemos.
+Las pruebas crean una base temporal de nombre betimeco_pruebas_..., comprueban 25 respuestas HTTP, bcrypt y aislamiento entre cuentas y eliminan exclusivamente esa base al terminar. No usan los documentos de betimeco. Incluyen un fallo simulado para verificar la respuesta 500.
 
-| Carpeta | Uso que tendrá |
-| --- | --- |
-| config | Conexión de MongoDB |
-| models | Esquemas User y Product |
-| routes | Direcciones de autenticación y productos |
-| validators | Reglas de los datos recibidos |
-| middlewares | Comprobación de JWT y resultados de validación |
-| controllers | Funciones que registran, autentican y gestionan productos |
+Importa postman/BeTimeCo.postman_collection.json en Postman y ejecuta las peticiones en orden. El login guarda token y la creación de producto guarda productId automáticamente. La colección usa datos ficticios para practicar; no contiene las credenciales de Atlas.
 
-## Práctica antes de avanzar
+## Datos de demostración
 
-1. Ejecuta el servidor y abre `/api/estado`.
-2. Cambia el mensaje del objeto JSON en `index.js`, guarda y actualiza el navegador.
-3. Abre `/api/no-existe` y observa la respuesta 404.
-4. Explica con tus palabras qué hacen `app.get` y `respuesta.json`.
+```powershell
+npm.cmd run demo
+```
 
-## Próximas etapas
+Crea una cuenta de demostración y seis relojes sólo si aún no existen. No cambia contraseñas de cuentas existentes. Su correo y contraseña se guardan localmente como DEMO_EMAIL y DEMO_PASSWORD en .env. No publiques ese archivo ni lo muestres en el vídeo. El carrito del frontend guarda una selección; no cobra, crea pedidos ni reserva stock.
 
-1. Crear User, registro y sus validaciones.
-2. Añadir bcrypt, login y JWT.
-3. Crear Product y su CRUD con permisos.
-4. Probar las peticiones en Postman y conectar Angular.
+## Nota de trabajo
 
-El proyecto utiliza Git con rama principal main. Cada avance funcional se guarda con un mensaje que describe el cambio. Los siguientes trabajos de registro, login y productos se desarrollarán en ramas propias antes de integrarse en main.
+El código se desarrolló con asistencia de Codex. La guía del curso exige escritura manual y comprensión del código para la entrega; esta versión no debe describirse como un trabajo realizado sin esa ayuda. Alex debe revisar y poder explicar las funciones que presente.
+
+En esta máquina se usa DNS_SERVERS en .env porque el DNS predeterminado no resolvía los registros SRV de Atlas. Es opcional y sólo modifica la resolución del proceso Node, no la de Windows. Los paquetes se instalaron en disco local y se copiaron a Drive después de errores de escritura de npm en la unidad virtual.
