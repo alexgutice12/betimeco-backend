@@ -3,7 +3,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const app = express();
 app.disable('x-powered-by');
-const origenes = (process.env.FRONTEND_ORIGIN || 'http://localhost:4200').split(',').map(valor => valor.trim());
+const origenes = (process.env.FRONTEND_ORIGIN || 'http://localhost:4200,http://127.0.0.1:4200').split(',').map(valor => valor.trim());
 app.use(cors({ origin: origenes }));
 app.use(express.json({ limit: '20kb' }));
 app.get('/api/estado', (peticion, respuesta) => {

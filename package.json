@@ -8,7 +8,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "node tests/integracion.js",
+    "demo": "node scripts/cargar-demo.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
