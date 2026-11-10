@@ -67,7 +67,7 @@ const cargar = async () => {
     [
       "Noa Aqua",
       "Reloj de color aqua con una silueta ligera para el uso diario.",
-      179900,
+      129900,
       3,
       "Urbano",
       "reloj-noa-aqua.jpg",
