@@ -14,6 +14,7 @@ const app = require("../app");
 const conectar = require("../config/db");
 const User = require("../models/User");
 const Product = require("../models/Product");
+const Mensaje = require("../models/Mensaje");
 
 const ejecutar = async () => {
   let servidor;
@@ -40,6 +41,38 @@ const ejecutar = async () => {
       return { status: respuesta.status, data: await respuesta.json() };
     };
     estado(await pedir("/estado"), 200);
+    const contacto = {
+      nombre: "  Consulta de prueba  ",
+      correo: "  CONTACTO@example.com  ",
+      mensaje: "  Quiero consultar la disponibilidad del reloj Hexa Black.  ",
+    };
+    estado(await pedir("/contacto", "POST", { nombre: " ", correo: "mal", mensaje: "corto" }), 400);
+    assert.equal(await Mensaje.countDocuments(), 0);
+    const recibido = await pedir("/contacto", "POST", { ...contacto, campoAjeno: "no guardar" });
+    estado(recibido, 201);
+    assert.equal(recibido.data.correo, undefined);
+    const mensajeGuardado = await Mensaje.findOne({ correo: "contacto@example.com" }).lean();
+    assert.equal(mensajeGuardado.nombre, contacto.nombre.trim());
+    assert.equal(mensajeGuardado.mensaje, contacto.mensaje.trim());
+    assert.equal(mensajeGuardado.campoAjeno, undefined);
+    estado(await pedir("/contacto"), 404);
+    estado(await pedir("/contacto", "POST", { ...contacto, mensaje: "x".repeat(2001) }), 400);
+    estado(await pedir("/contacto", "POST", { ...contacto, nombre: { $ne: null } }), 400);
+    const crearMensaje = Mensaje.create;
+    Mensaje.create = () => { throw new Error("Fallo simulado al guardar un mensaje"); };
+    try {
+      const fallo = await pedir("/contacto", "POST", contacto);
+      estado(fallo, 500);
+      assert.equal(fallo.data.msg.includes("simulado"), false);
+    } finally {
+      Mensaje.create = crearMensaje;
+    }
+    assert.equal(await Mensaje.countDocuments(), 1);
+    for (let intento = 0; intento < 5; intento++) {
+      await pedir("/contacto", "POST", { nombre: "", correo: "", mensaje: "" });
+    }
+    estado(await pedir("/contacto", "POST", contacto), 429);
+    assert.equal(await Mensaje.countDocuments(), 1);
     estado(
       await pedir("/auth/registrar", "POST", {
         nombre: "a",
