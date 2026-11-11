@@ -35,6 +35,7 @@ La configuración de Express en `app.js` permite probar la API sin iniciar el se
 | GET | /api/estado | Estado de conexión | No |
 | POST | /api/auth/registrar | Nombre, email y password | No |
 | POST | /api/auth/login | Email y password; devuelve token y usuario | No |
+| POST | /api/contacto | Guardar nombre, correo y mensaje de contacto | No |
 | GET | /api/auth/perfil | Datos de la cuenta actual | Sí |
 | GET | /api/product | Catálogo, hasta 200 productos | No |
 | GET | /api/product/:id | Detalle de un producto | No |
@@ -70,7 +71,11 @@ El código 502 corresponde a errores de una pasarela o proxy y no forma parte de
 npm.cmd test
 ```
 
-Las pruebas crean una base temporal de nombre betimeco_pruebas_..., comprueban 25 respuestas HTTP, bcrypt y aislamiento entre cuentas y eliminan exclusivamente esa base al terminar. No usan los documentos de betimeco. Incluyen un fallo simulado para verificar la respuesta 500.
+Las pruebas crean una base temporal de nombre betimeco_pruebas_..., comprueban autenticación, CRUD, mensajes de contacto, bcrypt y aislamiento entre cuentas y eliminan exclusivamente esa base al terminar. No usan los documentos de betimeco. Incluyen fallos simulados para verificar la respuesta 500.
+
+## Mensajes de contacto
+
+El formulario guarda los mensajes en `betimeco → mensajes`, con nombre, correo, mensaje y fechas. La respuesta 201 confirma que MongoDB guardó el mensaje. Los datos se validan con express-validator y se permiten hasta 10 intentos por IP cada 15 minutos. No existe una ruta pública para leer los mensajes; se consultan desde Atlas. No se envían notificaciones por correo.
 
 Importa postman/BeTimeCo.postman_collection.json en Postman y ejecuta las peticiones en orden. El login guarda token y la creación de producto guarda productId automáticamente. La colección usa datos ficticios para practicar; no contiene las credenciales de Atlas.
 

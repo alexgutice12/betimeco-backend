@@ -21,6 +21,7 @@ app.get("/api/estado", (peticion, respuesta) => {
 });
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/product", require("./routes/product.routes"));
+app.use("/api/contacto", require("./routes/contact.routes"));
 app.use((peticion, respuesta) =>
   respuesta.status(404).json({ msg: "Ruta no encontrada" }),
 );
